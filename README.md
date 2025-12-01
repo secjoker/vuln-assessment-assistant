@@ -22,7 +22,7 @@
 确保您的环境安装了 Python 3.8+。
 
 ```bash
-git clone https://github.com/your-username/vuln-assessment-assistant.git
+git clone https://github.com/secjoker/vuln-assessment-assistant.git
 cd vuln-assessment-assistant
 
 # 创建虚拟环境 (可选但推荐)
