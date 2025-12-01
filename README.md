@@ -92,5 +92,7 @@ streamlit run app_advanced.py
 5. 提交 Pull Request
 
 ## 📄 许可证
-Distributed under the MIT License.
+Distributed under the MIT License. **[MIT License](LICENSE)** - see the [LICENSE](LICENSE) file for details.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
