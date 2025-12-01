@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漏洞研判报告</title>
+    <style>
+        :root {
+            /* 风险等级配色 */
+            --p0-color: #dc3545; /* 红 */
+            --p0-bg: #fff5f5;
+            --p1-color: #fd7e14; /* 橙 */
+            --p1-bg: #fff9f2;
+            --p2-color: #ffc107; /* 黄 */
+            --p2-bg: #fffbf0;
+            --p3-color: #6c757d; /* 灰 */
+            --p3-bg: #f8f9fa;
+            
+            /* 通用配色 */
+            --text-main: #212529;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --bg-body: #f4f6f9;
+            --bg-card: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        /* 头部样式 */
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 28px;
+        }
+
+        .meta-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 20px;
+        }
+
+        /* 仪表盘样式 */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            padding: 20px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-left-width: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover { transform: translateY(-2px); }
+
+        .card.P0 { border-left-color: var(--p0-color); background-color: var(--p0-bg); }
+        .card.P1 { border-left-color: var(--p1-color); background-color: var(--p1-bg); }
+        .card.P2 { border-left-color: var(--p2-color); background-color: var(--p2-bg); }
+        .card.P3 { border-left-color: var(--p3-color); background-color: var(--p3-bg); }
+
+        .card h3 { margin: 0; font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .card .count { font-size: 38px; font-weight: 700; display: block; margin: 10px 0; line-height: 1; }
+        .card .desc { font-size: 12px; opacity: 0.8; }
+
+        /* 表格区域样式 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-top: 50px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-right: 15px;
+        }
+
+        .sla-badge {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #eee;
+            color: #555;
+            font-weight: normal;
+        }
+
+        /* 颜色类 */
+        .text-P0 { color: var(--p0-color); }
+        .text-P1 { color: var(--p1-color); }
+        .text-P2 { color: #d39e00; } /* P2 文字稍微深一点以保证阅读 */
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        .badge.P0 { background-color: var(--p0-color); }
+        .badge.P1 { background-color: var(--p1-color); }
+        .badge.P2 { background-color: var(--p2-color); color: #000; }
+        .badge.P3 { background-color: var(--p3-color); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background-color: #fafafa; }
+
+        /* 标签与代码块 */
+        .tag-alert {
+            display: inline-block;
+            background-color: #ffe3e3;
+            color: #c92a2a;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-bottom: 4px;
+        }
+        
+        .cve-id { font-family: monospace; font-weight: bold; font-size: 13px; }
+
+        .action-box {
+            background-color: #f1f3f5;
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            font-size: 12px;
+            color: #c7254e;
+            border: 1px solid #e9ecef;
+            display: block;
+            word-break: break-all;
+        }
+
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 12px;
+            color: #adb5bd;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        @media print {
+            .container { box-shadow: none; border: none; padding: 0; width: 100%; max-width: 100%; }
+            body { padding: 0; background: #fff; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🛡️ 漏洞研判与升级推动报告</h1>
+        <div class="meta-info">
+            <span>📅 生成时间：{{ generate_time }}</span>
+            <span>⚖️ 研判标准：SSVC 模型 (Stakeholder-Specific Vulnerability Categorization)</span>
+        </div>
+    </header>
+
+    <!-- 1. 概览仪表盘 -->
+    <!-- 计算各等级数量 -->
+    {% set p0_list = vulns | selectattr('level', 'equalto', 'P0') | list %}
+    {% set p1_list = vulns | selectattr('level', 'equalto', 'P1') | list %}
+    {% set p2_list = vulns | selectattr('level', 'equalto', 'P2') | list %}
+    {% set p3_list = vulns | selectattr('level', 'equalto', 'P3') | list %}
+
+    <div class="dashboard">
+        <div class="card P0">
+            <h3>P0 紧急修复</h3>
+            <span class="count" style="color: var(--p0-color)">{{ p0_list | length }}</span>
+            <span class="desc">SLA: 24小时内响应<br>阻断构建 / 立即热修</span>
+        </div>
+        <div class="card P1">
+            <h3>P1 高危推动</h3>
+            <span class="count" style="color: var(--p1-color)">{{ p1_list | length }}</span>
+            <span class="desc">SLA: 7天内 / 下次发布<br>常规 Bug 排期修复</span>
+        </div>
+        <div class="card P2">
+            <h3>P2 中危观察</h3>
+            <span class="count" style="color: #d39e00">{{ p2_list | length }}</span>
+            <span class="desc">SLA: 30天内<br>配置加固或后续修复</span>
+        </div>
+        <!-- 如果有 P3 也可以显示，或者为了布局美观省略 -->
+    </div>
+
+    <!-- 2. 漏洞详情列表循环 -->
+    
+    <!-- 定义一个宏来简化表格输出 -->
+    {% macro render_table(level_name, list_data, title_text, sla_text) %}
+    {% if list_data %}
+        <div class="section-header">
+            <span class="badge {{level_name}}">{{ level_name }}</span>
+            <span class="section-title text-{{level_name}}">{{ title_text }}</span>
+            <span class="sla-badge">⏱️ {{ sla_text }}</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th width="18%">组件/软件</th>
+                    <th width="18%">漏洞编号</th>
+                    <th width="30%">研判依据 (Rationale)</th>
+                    <th width="34%">修复建议 & 行动</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in list_data %}
+                <tr>
+                    <td>
+                        <strong>{{ v.component }}</strong>
+                    </td>
+                    <td>
+                        {% if v.tag %}
+                            <!-- 如果Tag里包含 "In the Wild" 或 "KEV" 则显示高亮警告样式 -->
+                            {% if "KEV" in v.tag or "Wild" in v.tag %}
+                                <div class="tag-alert">🚨 {{ v.tag }}</div>
+                            {% else %}
+                                <div style="font-size:11px; color:#666; background:#eee; padding:2px 5px; border-radius:3px; display:inline-block; margin-bottom:4px;">{{ v.tag }}</div>
+                            {% endif %}
+                        {% endif %}
+                        <div class="cve-id">{{ v.cve }}</div>
+                    </td>
+                    <td>
+                        <!-- 将换行符转换为HTML换行，支持分点显示 -->
+                        {{ v.reason | replace('\n', '<br>') | safe }}
+                    </td>
+                    <td>
+                        <div style="font-weight:500; margin-bottom:5px;">{{ v.suggestion }}</div>
+                        {% if v.action_code %}
+                            <code class="action-box">{{ v.action_code }}</code>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    {% endmacro %}
+
+    <!-- 调用宏渲染各个等级的表格 -->
+    {{ render_table('P0', p0_list, '紧急修复名单 (Emergency)', '立即响应 (24H)') }}
+    {{ render_table('P1', p1_list, '高危推动名单 (Scheduled)', '下个迭代 (7 Days)') }}
+    {{ render_table('P2', p2_list, '中危观察名单 (Mitigate)', '季度迭代 (30 Days)') }}
+    {{ render_table('P3', p3_list, '低危/接受风险 (Defer)', '按需处理') }}
+
+    {% if (p0_list|length + p1_list|length + p2_list|length + p3_list|length) == 0 %}
+        <div style="text-align:center; padding:50px; color:#999;">
+            <h3>🎉 暂无发现高危风险</h3>
+            <p>本次研判未发现需要立即推动升级的组件。</p>
+        </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Report Generated by Security Intelligence Assistant | Based on SSVC & CISA KEV Database</p>
+    </div>
+</div>
+
+</body>
+</html>
